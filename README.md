@@ -1,3 +1,5 @@
+# ash
+
 * installare aws cli 2
 
 https://docs.aws.amazon.com/it_it/cli/latest/userguide/install-cliv2.html
@@ -26,4 +28,3 @@ role_arn = arn:aws:iam::***
 source_profile = default
 region = eu-west-1
 ```
-# ash
