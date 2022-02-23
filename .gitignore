@@ -70,3 +70,6 @@ ash.zip
 out
 history
 sshconfig
+ash*.zip
+ash*.tar.gz
+ash.exe

@@ -22,15 +22,20 @@ jobs:
     - name: Test
       run: go test -v ./...
 
-    - name: Build
+    - name: Build-lnx
       run: go build -race -ldflags "-s -w -X main.version=${{github.ref_name}} -X main.sha1ver=$GITHUB_SHA -X main.buildTime=$(date '+%Y-%m-%dT%H:%M:%S') -extldflags '-static'"
+
+    - name: Build-lnx
+      run: env GOOS=windows GOARCH=amd64 \
+        go build -race -ldflags "-s -w -X main.version=${{github.ref_name}} -X main.sha1ver=$GITHUB_SHA -X main.buildTime=$(date '+%Y-%m-%dT%H:%M:%S') -extldflags '-static'"
       
     - name: Zip
-      run: zip -r ash.zip ash ash.config.json utils
+      run: tar -czvf ash-linux-x64.tar.gz ash ash.config.json utils && zip -r ash-win-x64.zip ash.exe ash.config.json utils
 
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: |
-          ash.zip
+          ash-linux-x64.tar.gz
+          ash-win-x64.zip
