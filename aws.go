@@ -40,8 +40,12 @@ func Instances(profile, keysBasePath string) []Server {
 		log.Fatal(err)
 	}
 	var res []Server
+	empty := "empy"
 	for _, r := range output.Reservations {
 		for _, i := range r.Instances {
+			if i.KeyName == nil {
+				i.KeyName = &empty
+			}
 			s := Server{TagWithName(i.Tags, "Name"), *i.PublicIpAddress, profile, path.Join(keysBasePath, *i.KeyName), string(i.Platform)}
 			res = append(res, s)
 		}
