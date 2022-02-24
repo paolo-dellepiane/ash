@@ -1,6 +1,5 @@
 package main
 
-// Host (.*)HostName (.*)User (.*)IdentityFile (.*)$
 import (
 	"encoding/json"
 	"errors"
@@ -88,11 +87,24 @@ func update() {
 	if appendTo, err := os.ReadFile(cfg.AppendTo); err == nil {
 		out.Write(appendTo)
 	}
+	var entries []string
 	for _, p := range cfg.Profiles {
-		for _, v := range Instances(p, cfg.KeysPath) {
-			fmt.Fprintf(out, "%s\n", entry(v))
+		for _, i := range Instances(p, cfg.KeysPath) {
+			fmt.Fprintf(out, "%s\n", entry(i))
+			entries = append(entries, strings.ReplaceAll(i.Name, " ", ""))
 		}
 	}
+	var cleanedUpHistory []string
+Next:
+	for _, h := range loadHistory() {
+		for _, e := range entries {
+			if e == h {
+				cleanedUpHistory = append(cleanedUpHistory, h)
+				continue Next
+			}
+		}
+	}
+	saveHistory(cleanedUpHistory)
 }
 
 func inputStrings(prefix string, values []string, in ...string) (int, string, error) {
@@ -133,17 +145,27 @@ func inputSuggests(prefix string, suggests []prompt.Suggest, in ...string) (int,
 	return -1, "", errors.New("can't find " + res)
 }
 
-func getServer() *Server {
+func loadHistory() []string {
 	if !fileExists(historyPath) {
 		os.WriteFile(historyPath, []byte(`[]`), os.ModeAppend)
 	}
 	historyFile, _ := os.ReadFile(historyPath)
 	var history []string
 	json.Unmarshal(historyFile, &history)
+	return history
+}
+
+func saveHistory(history []string) {
+	b, _ := json.Marshal(history)
+	_ = os.WriteFile(historyPath, b, os.ModeAppend)
+}
+
+func getServer() *Server {
+	history := loadHistory()
 	f, _ := os.ReadFile(cfg.SSHConfig)
 	allProfiles := regexp.MustCompile(`(?smU)# generated \[(.*)\].*$`).FindAllStringSubmatch(string(f), -1)
 	profiles := append([]string{`history`, `all`}, distinct(extract(allProfiles, 1))...)
-	i, profile, err := inputStrings("> ", profiles, flag.Arg(0))
+	i, profile, _ := inputStrings("> ", profiles, flag.Arg(0))
 	entriesrxstr := `(?smU)# generated \[` + profile + `\].*\r?$.*Host (.*)\r?$.*HostName (.*)\r?$.*User (.*)\r?$.*IdentityFile (.*)\r?$`
 	if i < 2 {
 		entriesrxstr = `(?smU)Host (.*)\r?$.*HostName (.*)\r?$.*User (.*)\r?$.*IdentityFile (.*)\r?$`
@@ -153,15 +175,14 @@ func getServer() *Server {
 	if profile == `history` {
 		_, val, _ = inputStrings(profile+"> ", history)
 	}
-	i, _, err = inputStrings(profile+"> ", extract(entries, 1), val)
+	i, _, err := inputStrings(profile+"> ", extract(entries, 1), val)
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
 	srv := &Server{entries[i][1], entries[i][3] + "@" + entries[i][2], profile, entries[i][4], ""}
 	history = distinct(append([]string{srv.Name}, history...))
-	b, _ := json.Marshal(history)
-	_ = os.WriteFile(historyPath, b, os.ModeAppend)
+	saveHistory(history)
 	return srv
 }
 
