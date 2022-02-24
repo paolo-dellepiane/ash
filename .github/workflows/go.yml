@@ -16,7 +16,7 @@ jobs:
     - name: Format
       run: go fmt ./...
       
-    - name: Test
+    - name: Vet
       run: go vet -v ./...
       
     - name: Test
