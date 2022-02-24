@@ -24,39 +24,17 @@ var cfg struct {
 	AwsInstances, KeysPath, SSHConfig, AppendTo string
 }
 
-type server struct {
-	Name, Address, Profile, Key, Platform string
-}
-
-func entry(s server) string {
-	if s.Address == "" {
-		s.Address = "missing"
-	}
+func entry(s Server) string {
 	user := "ubuntu"
-	key := s.Key
 	if s.Platform == "windows" {
 		user = "administrator"
-		key = strings.ReplaceAll(s.Key, "m4ctest.key", "m4cprod.key")
 	}
 	return fmt.Sprintf(`# generated [%s]
 Host %s
     HostName %s
     User %s
     IdentityFile %s
-`, s.Profile, strings.ReplaceAll(s.Name, " ", ""), s.Address, user, key)
-}
-
-func generateEntries(profile string) []server {
-	args := strings.Split(cfg.AwsInstances+` --profile `+profile, " ")
-	ls, _ := exec.Command(`aws.exe`, args...).CombinedOutput()
-	var r [][][]string
-	json.Unmarshal(ls, &r)
-	var res []server
-	for _, v := range r {
-		x := server{v[0][0], v[0][1], profile, path.Join(cfg.KeysPath, strings.ReplaceAll(v[0][3], "-", ".")), v[0][2]}
-		res = append(res, x)
-	}
-	return res
+`, s.Profile, strings.ReplaceAll(s.Name, " ", ""), s.Address, user, s.Key)
 }
 
 func extract(in [][]string, idx int) []string {
@@ -111,8 +89,7 @@ func update() {
 		out.Write(appendTo)
 	}
 	for _, p := range cfg.Profiles {
-		entries := generateEntries(p)
-		for _, v := range entries {
+		for _, v := range Instances(p, cfg.KeysPath) {
 			fmt.Fprintf(out, "%s\n", entry(v))
 		}
 	}
@@ -156,7 +133,7 @@ func inputSuggests(prefix string, suggests []prompt.Suggest, in ...string) (int,
 	return -1, "", errors.New("can't find " + res)
 }
 
-func getServer() *server {
+func getServer() *Server {
 	if !fileExists(historyPath) {
 		os.WriteFile(historyPath, []byte(`[]`), os.ModeAppend)
 	}
@@ -181,7 +158,7 @@ func getServer() *server {
 		fmt.Println(err)
 		return nil
 	}
-	srv := &server{entries[i][1], entries[i][3] + "@" + entries[i][2], profile, entries[i][4], ""}
+	srv := &Server{entries[i][1], entries[i][3] + "@" + entries[i][2], profile, entries[i][4], ""}
 	history = distinct(append([]string{srv.Name}, history...))
 	b, _ := json.Marshal(history)
 	_ = os.WriteFile(historyPath, b, os.ModeAppend)
