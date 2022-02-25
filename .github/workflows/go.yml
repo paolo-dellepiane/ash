@@ -31,7 +31,11 @@ jobs:
     - name: Zip
       if: startsWith(github.ref, 'refs/tags/')
       run: tar -czvf ash-${{github.ref_name}}-linux-x64.tar.gz ash ash.config.json res && zip -r ash-${{github.ref_name}}-win-x64.zip ash.exe ash.config.json res
-
+    
+    - name: Hash
+      run: sha256sum ash-${{github.ref_name}}-linux-x64.tar.gz > ash-${{github.ref_name}}-linux-x64.tar.gz.sha256 &&\
+           sha256sum ash-${{github.ref_name}}-win-x64.zip > ash-${{github.ref_name}}-win-x64.zip.sha256
+           
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
