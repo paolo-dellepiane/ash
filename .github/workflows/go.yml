@@ -33,7 +33,7 @@ jobs:
     
     - name: Zip
       if: startsWith(github.ref, 'refs/tags/')
-      run: tar -czvf ash-${{github.ref_name}}-linux-x64.tar.gz ash ash.config.json && zip -r ash-${{github.ref_name}}-win-x64.zip ash.exe ash.config.json
+      run: tar -czvf ash-${{github.ref_name}}-linux-x64.tar.gz ash ash.config.json res && zip -r ash-${{github.ref_name}}-win-x64.zip ash.exe ash.config.json res
 
     - name: Release
       uses: softprops/action-gh-release@v1
