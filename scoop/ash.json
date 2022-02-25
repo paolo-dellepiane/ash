@@ -1,0 +1,16 @@
+{
+    "version": "v0.0.19",
+    "url": "https://github.com/paolo-dellepiane/ash/releases/download/v0.0.19/ash-v0.0.19-win-x64.zip",
+    "bin": "ash.exe",
+    "hash": "1674f857a34e458912c0cf0fad9341f0630ebf864357ee6993e5c90c6b03e73b",
+    "checkver": {
+        "url": "https://github.com/paolo-dellepiane/ash/releases",
+        "regex": "ash-(v[\\d.]+)-win-x64.zip"
+    },
+    "autoupdate": {
+        "url": "https://github.com/paolo-dellepiane/ash/releases/download/$version/ash-$version-win-x64.zip",
+        "hash": {
+            "url": "$url.sha256"
+        }
+    }
+}
