@@ -1,7 +1,6 @@
 {
   "profiles": ["default", "test", "prod"],
-  "awsInstances": "ec2 describe-instances --query Reservations[*].Instances[*].[Tags[?Key=='Name'].Value|[0],PublicIpAddress,Platform,KeyName] --filter Name=instance-state-name,Values=running",
   "keysPath": "%userprofile%/.ssh",
   "sshConfig": "%userprofile%/.ssh/config",
-  "appendTo": "sshconfig"
+  "appendTo": "append.to.this.sshconfig"
 }

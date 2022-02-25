@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -16,12 +17,17 @@ import (
 	"github.com/jinzhu/configor"
 )
 
-var version, sha1ver, buildTime string
-
-var cfg struct {
-	Profiles                                    []string
-	AwsInstances, KeysPath, SSHConfig, AppendTo string
-}
+var (
+	//go:embed ash.config.json
+	defaultCfg string
+	//go:embed res/vsdbg.sh
+	vsdbgsh                     string
+	version, sha1ver, buildTime string
+	cfg                         struct {
+		Profiles                                    []string
+		AwsInstances, KeysPath, SSHConfig, AppendTo string
+	}
+)
 
 func entry(s Server) string {
 	user := "ubuntu"
@@ -56,26 +62,59 @@ func distinct(intSlice []string) []string {
 	return out
 }
 
-func lookForPath(filePath string) string {
-	if fileExists(filePath) {
-		return filePath
-	}
-	return inExeDir(filePath)
-}
-
-func inExeDir(filePath string) string {
-	ex, _ := os.Executable()
-	tmp := path.Join(filepath.Dir(ex), filePath)
-	if !fileExists(tmp) {
-		f, _ := os.Create(tmp)
-		f.Close()
-	}
-	return tmp
-}
-
 func fileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)
+}
+
+func lookForPath(filePath, defaultContent string) string {
+	if filepath.IsAbs(filePath) {
+		return filePath
+	}
+	exePath, _ := os.Executable()
+	exePath = filepath.Dir(exePath)
+	cwdPath, _ := os.Getwd()
+	homePath, _ := os.UserHomeDir()
+	homePath = path.Join(homePath, ".config/ash")
+	for _, dir := range []string{exePath, cwdPath, homePath} {
+		p := path.Join(dir, filePath)
+		if fileExists(p) {
+			return p
+		}
+	}
+	defaultPath := path.Join(homePath, filePath)
+	_ = os.MkdirAll(filepath.Dir(defaultPath), os.ModePerm)
+	_ = os.WriteFile(defaultPath, []byte(defaultContent), os.ModePerm)
+	return defaultPath
+}
+
+func loadHistory() []string {
+	if !fileExists(historyPath) {
+		os.WriteFile(historyPath, []byte(`[]`), os.ModeAppend)
+	}
+	historyFile, _ := os.ReadFile(historyPath)
+	var history []string
+	json.Unmarshal(historyFile, &history)
+	return history
+}
+
+func saveHistory(history []string) {
+	b, _ := json.Marshal(history)
+	_ = os.WriteFile(historyPath, b, os.ModeAppend)
+}
+
+func cleanupHistory(entries []string) {
+	var cleanedUpHistory []string
+Next:
+	for _, h := range loadHistory() {
+		for _, e := range entries {
+			if e == h {
+				cleanedUpHistory = append(cleanedUpHistory, h)
+				continue Next
+			}
+		}
+	}
+	saveHistory(cleanedUpHistory)
 }
 
 func update() {
@@ -94,17 +133,7 @@ func update() {
 			entries = append(entries, strings.ReplaceAll(i.Name, " ", ""))
 		}
 	}
-	var cleanedUpHistory []string
-Next:
-	for _, h := range loadHistory() {
-		for _, e := range entries {
-			if e == h {
-				cleanedUpHistory = append(cleanedUpHistory, h)
-				continue Next
-			}
-		}
-	}
-	saveHistory(cleanedUpHistory)
+	cleanupHistory(entries)
 }
 
 func inputStrings(prefix string, values []string, in ...string) (int, string, error) {
@@ -145,21 +174,6 @@ func inputSuggests(prefix string, suggests []prompt.Suggest, in ...string) (int,
 	return -1, "", errors.New("can't find " + res)
 }
 
-func loadHistory() []string {
-	if !fileExists(historyPath) {
-		os.WriteFile(historyPath, []byte(`[]`), os.ModeAppend)
-	}
-	historyFile, _ := os.ReadFile(historyPath)
-	var history []string
-	json.Unmarshal(historyFile, &history)
-	return history
-}
-
-func saveHistory(history []string) {
-	b, _ := json.Marshal(history)
-	_ = os.WriteFile(historyPath, b, os.ModeAppend)
-}
-
 func getServer() *Server {
 	history := loadHistory()
 	f, _ := os.ReadFile(cfg.SSHConfig)
@@ -189,7 +203,7 @@ func getServer() *Server {
 func info() {
 	fmt.Println("Version:", version)
 	fmt.Println("Build:", sha1ver, buildTime)
-	fmt.Println("History:", historyPath)
+	fmt.Println("Paths:", []string{*cfgFlag, historyPath, cfg.AppendTo})
 	fmt.Println("Configuration:", fmt.Sprintf("%+v", cfg))
 }
 
@@ -250,7 +264,7 @@ func vsdbg() {
 		}
 	}
 	i, _, _ := inputSuggests("", cNames)
-	executeInteractive(`scp`, `-i`, s.Key, inExeDir(`utils/vsdbg.sh`), s.Address+`:`)
+	executeInteractive(`scp`, `-i`, s.Key, lookForPath(`res/vsdbg.sh`, vsdbgsh), s.Address+`:`)
 	executeInteractive(`ssh`, `-i`, s.Key, s.Address, `sudo`, `bash`, `vsdbg.sh`, containers[i][0], *vsdbgPortFlag)
 	fmt.Println("SSH to", s.Address, *vsdbgPortFlag)
 }
@@ -258,7 +272,7 @@ func vsdbg() {
 var updateFlag = flag.Bool("update", false, "update ssh config file (path in config)")
 var oFlag = flag.String("o", "out", "output file")
 var printFlag = flag.Bool("print", false, "print to stdout")
-var cfgFlag = flag.String("cfg", "ash.config.json", "ash config file")
+var cfgFlag = flag.String("config-file ", "ash.config.json", "ash config file")
 var putFlag = flag.String("put", "", "put file or directory")
 var getFlag = flag.String("get", "", "get file or directory")
 var execFlag = flag.String("exec", "", "execute command")
@@ -271,15 +285,16 @@ var historyPath = `history`
 
 func main() {
 	flag.Parse()
-	*cfgFlag = lookForPath(*cfgFlag)
+	lookForPath(`res/vsdbg.sh`, vsdbgsh)
+	*cfgFlag = lookForPath(*cfgFlag, defaultCfg)
 	if err := configor.Load(&cfg, *cfgFlag); err != nil {
 		fmt.Println(err)
 		return
 	}
-	cfg.AppendTo = lookForPath(cfg.AppendTo)
+	cfg.AppendTo = lookForPath(cfg.AppendTo, "")
 	cfg.KeysPath = strings.ReplaceAll(cfg.KeysPath, "%userprofile%", os.Getenv("userprofile"))
 	cfg.SSHConfig = strings.ReplaceAll(cfg.SSHConfig, "%userprofile%", os.Getenv("userprofile"))
-	historyPath = inExeDir(historyPath)
+	historyPath = lookForPath(historyPath, "")
 	switch {
 	case *versionFlag:
 		info()
