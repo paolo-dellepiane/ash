@@ -42,4 +42,6 @@ jobs:
       with:
         files: |
           ash-${{github.ref_name}}-linux-x64.tar.gz
+          ash-${{github.ref_name}}-linux-x64.tar.gz.sha256
           ash-${{github.ref_name}}-win-x64.zip
+          ash-${{github.ref_name}}-win-x64.zip.sha256
