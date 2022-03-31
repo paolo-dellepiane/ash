@@ -1,1 +1,1 @@
-checkver.ps1 ash . -u
+& $env:UserProfile\scoop\apps\scoop\current\bin\checkver.ps1 ash . -Update
