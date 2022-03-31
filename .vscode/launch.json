@@ -7,8 +7,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceFolder}",
-            "args": ["-update"],
-            "cwd": "C:/Program Files/ash"
+            "args": ["-server", "all", "dev13"]
         }
 
     ]

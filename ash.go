@@ -29,6 +29,26 @@ var (
 	}
 )
 
+func elementsAt[K any](in [][]K, idx int) []K {
+	var res []K
+	for _, v := range in {
+		res = append(res, v[idx])
+	}
+	return res
+}
+
+func distinct[K comparable](in []K) []K {
+	keys := make(map[K]bool)
+	out := []K{}
+	for _, entry := range in {
+		if _, ok := keys[entry]; !ok {
+			keys[entry] = true
+			out = append(out, entry)
+		}
+	}
+	return out
+}
+
 func entry(s Server) string {
 	user := "ubuntu"
 	if s.Platform == "windows" {
@@ -40,26 +60,6 @@ Host %s
     User %s
     IdentityFile %s
 `, s.Profile, strings.ReplaceAll(s.Name, " ", ""), s.Address, user, s.Key)
-}
-
-func extract(in [][]string, idx int) []string {
-	var res []string
-	for _, v := range in {
-		res = append(res, v[idx])
-	}
-	return res
-}
-
-func distinct(intSlice []string) []string {
-	keys := make(map[string]bool)
-	out := []string{}
-	for _, entry := range intSlice {
-		if _, ok := keys[entry]; !ok {
-			keys[entry] = true
-			out = append(out, entry)
-		}
-	}
-	return out
 }
 
 func fileExists(filename string) bool {
@@ -120,7 +120,11 @@ Next:
 func update() {
 	out := os.Stdout
 	if !*printFlag {
-		out, _ = os.Create(cfg.SSHConfig)
+		if *oFlag != "out" {
+			out, _ = os.Create(*oFlag)
+		} else {
+			out, _ = os.Create(cfg.SSHConfig)
+		}
 		defer out.Close()
 	}
 	if appendTo, err := os.ReadFile(cfg.AppendTo); err == nil {
@@ -178,7 +182,7 @@ func getServer() *Server {
 	history := loadHistory()
 	f, _ := os.ReadFile(cfg.SSHConfig)
 	allProfiles := regexp.MustCompile(`(?smU)# generated \[(.*)\].*$`).FindAllStringSubmatch(string(f), -1)
-	profiles := append([]string{`history`, `all`}, distinct(extract(allProfiles, 1))...)
+	profiles := append([]string{`history`, `all`}, distinct(elementsAt(allProfiles, 1))...)
 	i, profile, _ := inputStrings("> ", profiles, flag.Arg(0))
 	entriesrxstr := `(?smU)# generated \[` + profile + `\].*\r?$.*Host (.*)\r?$.*HostName (.*)\r?$.*User (.*)\r?$.*IdentityFile (.*)\r?$`
 	if i < 2 {
@@ -189,7 +193,7 @@ func getServer() *Server {
 	if profile == `history` {
 		_, val, _ = inputStrings(profile+"> ", history)
 	}
-	i, _, err := inputStrings(profile+"> ", extract(entries, 1), val)
+	i, _, err := inputStrings(profile+"> ", elementsAt(entries, 1), val)
 	if err != nil {
 		fmt.Println(err)
 		return nil
@@ -209,26 +213,25 @@ func info() {
 
 func serverInfo() {
 	s := getServer()
-	if *infoFlag {
-		out := os.Stdout
-		if !*printFlag {
-			out, _ = os.Create(*oFlag)
-			defer out.Close()
-		}
-		out.WriteString(fmt.Sprintf(`"%s","%s","%s","%s"`, s.Profile, s.Name, s.Key, s.Address))
-		return
+	out := os.Stdout
+	if !*printFlag {
+		out, _ = os.Create(*oFlag)
+		defer out.Close()
 	}
+	str, _ := json.Marshal(s)
+	out.Write(str)
 }
 
 func ssh() {
 	s := getServer()
-	if *putFlag != "" {
+	switch {
+	case *putFlag != "":
 		executeInteractive(`scp`, `-i`, s.Key, *putFlag, s.Address+`:`)
-	} else if *getFlag != "" {
+	case *getFlag != "":
 		executeInteractive(`scp`, `-i`, s.Key, s.Address+`:`+*getFlag, `.`)
-	} else if *execFlag != "" {
+	case *execFlag != "":
 		executeInteractive(`ssh`, `-i`, s.Key, s.Address, *execFlag)
-	} else {
+	default:
 		executeInteractive(`ssh`, `-i`, s.Key, s.Address)
 	}
 }
@@ -269,16 +272,15 @@ func vsdbg() {
 	fmt.Println("SSH to", s.Address, *vsdbgPortFlag)
 }
 
-var updateFlag = flag.Bool("update", false, "update ssh config file (path in config)")
-var oFlag = flag.String("o", "out", "output file")
+var updateFlag = flag.Bool("update", false, "update ssh config file (path in config or specified by -o)")
+var oFlag = flag.String("o", "out", "output file to use when -print is not set")
 var printFlag = flag.Bool("print", false, "print to stdout")
 var cfgFlag = flag.String("config-file ", "ash.config.json", "ash config file")
 var putFlag = flag.String("put", "", "put file or directory")
 var getFlag = flag.String("get", "", "get file or directory")
 var execFlag = flag.String("exec", "", "execute command")
 var versionFlag = flag.Bool("version", false, `print version`)
-var infoFlag = flag.Bool("info", false, `print selected server info to file specified by "o" flag`)
-var serverFlag = flag.Bool("server", false, `print selected server info to file specified by "o" flag`)
+var serverFlag = flag.Bool("server", false, `print selected server info to standard output if -print is set, to file otherwise`)
 var vsdbgFlag = flag.Bool("vsdbg", false, `setup .net remote container debug`)
 var vsdbgPortFlag = flag.String("vsdbgport", "4444", `.net remote container port`)
 var historyPath = `history`
