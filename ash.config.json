@@ -2,5 +2,5 @@
   "profiles": ["default", "test", "prod"],
   "keysPath": "%userprofile%/.ssh",
   "sshConfig": "%userprofile%/.ssh/config",
-  "appendTo": "append.to.this.sshconfig"
+  "sshConfigTemplate": "template.for.sshconfig.tmpl"
 }

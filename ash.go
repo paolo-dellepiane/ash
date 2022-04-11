@@ -6,11 +6,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"html/template"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/c-bata/go-prompt"
@@ -24,8 +26,8 @@ var (
 	vsdbgsh                     string
 	version, sha1ver, buildTime string
 	cfg                         struct {
-		Profiles                                    []string
-		AwsInstances, KeysPath, SSHConfig, AppendTo string
+		Profiles                                             []string
+		AwsInstances, KeysPath, SSHConfig, SSHConfigTemplate string
 	}
 )
 
@@ -127,17 +129,22 @@ func update() {
 		}
 		defer out.Close()
 	}
-	if appendTo, err := os.ReadFile(cfg.AppendTo); err == nil {
-		out.Write(appendTo)
-	}
 	var entries []string
+	var historyEntries []string
 	for _, p := range cfg.Profiles {
 		for _, i := range Instances(p, cfg.KeysPath) {
-			fmt.Fprintf(out, "%s\n", entry(i))
-			entries = append(entries, strings.ReplaceAll(i.Name, " ", ""))
+			entries = append(entries, entry(i))
+			historyEntries = append(historyEntries, strings.ReplaceAll(i.Name, " ", ""))
 		}
 	}
 	cleanupHistory(entries)
+	tmpl, err := template.ParseFiles(cfg.SSHConfigTemplate)
+	if err != nil {
+		panic(err)
+	}
+	if err := tmpl.Execute(out, entries); err != nil {
+		panic(err)
+	}
 }
 
 func inputStrings(prefix string, values []string, in ...string) (int, string, error) {
@@ -189,6 +196,12 @@ func getServer() *Server {
 		entriesrxstr = `(?smU)Host (.*)\r?$.*HostName (.*)\r?$.*User (.*)\r?$.*IdentityFile (.*)\r?$`
 	}
 	entries := regexp.MustCompile(entriesrxstr).FindAllStringSubmatch(string(f), -1)
+	if len(entries) > 0 && entries[0][1] == "*" {
+		entries = entries[1:]
+	}
+	sort.SliceStable(entries, func(i, j int) bool {
+		return entries[i][1] < entries[j][1]
+	})
 	val := flag.Arg(1)
 	if profile == `history` {
 		_, val, _ = inputStrings(profile+"> ", history)
@@ -207,7 +220,7 @@ func getServer() *Server {
 func info() {
 	fmt.Println("Version:", version)
 	fmt.Println("Build:", sha1ver, buildTime)
-	fmt.Println("Paths:", []string{*cfgFlag, historyPath, cfg.AppendTo})
+	fmt.Println("Paths:", []string{*cfgFlag, historyPath, cfg.SSHConfigTemplate})
 	fmt.Println("Configuration:", fmt.Sprintf("%+v", cfg))
 }
 
@@ -293,7 +306,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	cfg.AppendTo = lookForPath(cfg.AppendTo, "")
+	cfg.SSHConfigTemplate = lookForPath(cfg.SSHConfigTemplate, "")
 	cfg.KeysPath = strings.ReplaceAll(cfg.KeysPath, "%userprofile%", os.Getenv("userprofile"))
 	cfg.SSHConfig = strings.ReplaceAll(cfg.SSHConfig, "%userprofile%", os.Getenv("userprofile"))
 	historyPath = lookForPath(historyPath, "")
