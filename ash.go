@@ -132,11 +132,9 @@ func update() {
 		defer out.Close()
 	}
 	var entries []string
-	var historyEntries []string
 	for _, p := range cfg.Profiles {
 		for _, i := range Instances(p, cfg.KeysPath) {
 			entries = append(entries, entry(i))
-			historyEntries = append(historyEntries, strings.ReplaceAll(i.Name, " ", ""))
 		}
 	}
 	cleanupHistory(entries)
