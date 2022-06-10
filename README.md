@@ -7,3 +7,8 @@
 scoop install https://gist.githubusercontent.com/paolo-dellepiane/d299721ffd4077500e3d405d31fe9b9d/raw/ash.json
 ```
 
+* Mac M1
+needs
+```
+go get -u golang.org/x/sys
+```

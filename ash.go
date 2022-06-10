@@ -23,7 +23,9 @@ var (
 	//go:embed ash.config.json
 	defaultCfg string
 	//go:embed res/vsdbg.sh
-	vsdbgsh                     string
+	vsdbgsh string
+	//go:embed res/template.for.sshconfig.tmpl
+	templateForSshconfig        string
 	version, sha1ver, buildTime string
 	cfg                         struct {
 		Profiles                                             []string
@@ -237,6 +239,9 @@ func serverInfo() {
 
 func ssh() {
 	s := getServer()
+	if s == nil {
+		return
+	}
 	switch {
 	case *putFlag != "":
 		executeInteractive(`scp`, `-i`, s.Key, *putFlag, s.Address+`:`)
@@ -306,7 +311,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	cfg.SSHConfigTemplate = lookForPath(cfg.SSHConfigTemplate, "")
+	cfg.SSHConfigTemplate = lookForPath(cfg.SSHConfigTemplate, templateForSshconfig)
 	cfg.KeysPath = strings.ReplaceAll(cfg.KeysPath, "%userprofile%", os.Getenv("userprofile"))
 	cfg.SSHConfig = strings.ReplaceAll(cfg.SSHConfig, "%userprofile%", os.Getenv("userprofile"))
 	historyPath = lookForPath(historyPath, "")
