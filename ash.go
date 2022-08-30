@@ -122,11 +122,19 @@ Next:
 }
 
 func update() {
-	var out *os.File
+	var (
+		out *os.File
+		err error
+	)
 	if len(*oFlag) > 0 {
-		out, _ = os.Create(*oFlag)
+		if out, err = os.Create(*oFlag); err != nil {
+			panic(err)
+		}
+
 	} else {
-		out, _ = os.Create(cfg.SSHConfig)
+		if out, err = os.Create(cfg.SSHConfig); err != nil {
+			panic(err)
+		}
 	}
 	defer out.Close()
 	var entries []string
