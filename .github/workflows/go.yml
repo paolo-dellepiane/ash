@@ -1,11 +1,5 @@
 name: Go
-on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - "**/README.md"
-      - "**/scoop/**"
+on: push
 
 jobs:
   build:
