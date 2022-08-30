@@ -258,6 +258,11 @@ func serverInfo() {
 		out, _ = os.Create(*oFlag)
 		defer out.Close()
 	}
+	if *iaddressFlag {
+		ip := strings.Split(s.Address, "@")[1]
+		out.Write([]byte(ip))
+		return
+	}
 	str, _ := json.Marshal(s)
 	out.Write(str)
 }
@@ -323,6 +328,7 @@ var getFlag = flag.String("get", "", "get file or directory")
 var execFlag = flag.String("exec", "", "execute command")
 var versionFlag = flag.Bool("v", false, `print version`)
 var serverFlag = flag.Bool("i", false, `outputs selected server info (use -o to print to file)`)
+var iaddressFlag = flag.Bool("iaddress", false, `outputs selected server ip address (use -o to print to file)`)
 var vsdbgFlag = flag.Bool("vsdbg", false, `setup .net remote container debug`)
 var vsdbgPortFlag = flag.String("vsdbgport", "4444", `.net remote container port`)
 var historyPath = `history`
@@ -348,7 +354,7 @@ func main() {
 		info()
 	case *vsdbgFlag:
 		vsdbg()
-	case *serverFlag:
+	case *serverFlag, *iaddressFlag:
 		serverInfo()
 	default:
 		ssh()
