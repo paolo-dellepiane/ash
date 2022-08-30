@@ -4,7 +4,7 @@
     "test",
     "prod"
   ],
-  "keysPath": "%userprofile%/.ssh",
-  "sshConfig": "%userprofile%/.ssh/config",
+  "keysPath": "~/.ssh",
+  "sshConfig": "~/.ssh/config",
   "sshConfigTemplate": "res/template.for.sshconfig.tmpl"
 }

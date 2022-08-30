@@ -14,7 +14,9 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceFolder}",
-            "args": ["-update"]
+            "args": [
+                "devlnx"
+            ]
         }
     ]
 }

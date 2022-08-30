@@ -171,6 +171,9 @@ func inputSuggests(prefix string, suggests []prompt.Suggest, in ...string) (int,
 	} else {
 		res = prompt.Input(prefix, completer, prompt.OptionShowCompletionAtStart(), prompt.OptionCompletionOnDown(), prompt.OptionSuggestionBGColor(prompt.DarkGray))
 	}
+	if res == "q" || res == ":q" || res == "exit" || res == "quit" {
+		os.Exit(0)
+	}
 	var selected []prompt.Suggest
 	for _, e := range suggests {
 		if e.Text == res {
@@ -191,12 +194,30 @@ func inputSuggests(prefix string, suggests []prompt.Suggest, in ...string) (int,
 	return -1, "", errors.New("can't find " + res)
 }
 
+func contains(arr []string, s string) bool {
+	for _, x := range arr {
+		if s == x {
+			return true
+		}
+	}
+	return false
+}
+
 func getServer() *Server {
 	history := loadHistory()
 	f, _ := os.ReadFile(cfg.SSHConfig)
 	allProfiles := regexp.MustCompile(`(?smU)# generated \[(.*)\].*$`).FindAllStringSubmatch(string(f), -1)
 	profiles := append([]string{`history`, `all`}, distinct(elementsAt(allProfiles, 1))...)
-	i, profile, _ := inputStrings("> ", profiles, flag.Arg(0))
+	profile := ""
+	srvname := ""
+	if len(flag.Args()) == 1 && !contains(profiles, flag.Arg(0)) {
+		profile = "all"
+		srvname = flag.Arg(0)
+	} else if len(flag.Args()) == 2 {
+		profile = flag.Arg(0)
+		srvname = flag.Arg(1)
+	}
+	i, profile, _ := inputStrings("> ", profiles, profile)
 	entriesrxstr := `(?smU)# generated \[` + profile + `\].*\r?$.*Host (.*)\r?$.*HostName (.*)\r?$.*User (.*)\r?$.*IdentityFile (.*)\r?$`
 	if i < 2 {
 		entriesrxstr = `(?smU)Host (.*)\r?$.*HostName (.*)\r?$.*User (.*)\r?$.*IdentityFile (.*)\r?$`
@@ -208,7 +229,7 @@ func getServer() *Server {
 	sort.SliceStable(entries, func(i, j int) bool {
 		return entries[i][1] < entries[j][1]
 	})
-	val := flag.Arg(1)
+	val := srvname
 	if profile == `history` {
 		_, val, _ = inputStrings(profile+"> ", history)
 	}
@@ -315,8 +336,9 @@ func main() {
 		return
 	}
 	cfg.SSHConfigTemplate = lookForPath(cfg.SSHConfigTemplate, templateForSshconfig)
-	cfg.KeysPath = strings.ReplaceAll(cfg.KeysPath, "%userprofile%", os.Getenv("userprofile"))
-	cfg.SSHConfig = strings.ReplaceAll(cfg.SSHConfig, "%userprofile%", os.Getenv("userprofile"))
+	home, _ := os.UserHomeDir()
+	cfg.KeysPath = strings.ReplaceAll(cfg.KeysPath, "~", home)
+	cfg.SSHConfig = strings.ReplaceAll(cfg.SSHConfig, "~", home)
 	historyPath = lookForPath(historyPath, "")
 	if *updateFlag || !fileExists(cfg.SSHConfig) {
 		update()
