@@ -46,6 +46,9 @@ func Instances(profile, keysBasePath string) []Server {
 			if i.KeyName == nil {
 				i.KeyName = &empty
 			}
+			if i.PublicIpAddress == nil {
+				log.Println("no public address: ", TagWithName(i.Tags, "Name"))
+			}
 			s := Server{TagWithName(i.Tags, "Name"), *i.PublicIpAddress, profile, path.Join(keysBasePath, *i.KeyName), string(i.Platform)}
 			res = append(res, s)
 		}

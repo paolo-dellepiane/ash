@@ -74,3 +74,4 @@ ash*.zip
 ash*.tar.gz
 ash.exe
 ash
+.DS_Store

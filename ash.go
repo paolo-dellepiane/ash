@@ -122,15 +122,13 @@ Next:
 }
 
 func update() {
-	out := os.Stdout
-	if !*printFlag {
-		if *oFlag != "out" {
-			out, _ = os.Create(*oFlag)
-		} else {
-			out, _ = os.Create(cfg.SSHConfig)
-		}
-		defer out.Close()
+	var out *os.File
+	if len(*oFlag) > 0 {
+		out, _ = os.Create(*oFlag)
+	} else {
+		out, _ = os.Create(cfg.SSHConfig)
 	}
+	defer out.Close()
 	var entries []string
 	for _, p := range cfg.Profiles {
 		for _, i := range Instances(p, cfg.KeysPath) {
@@ -227,7 +225,7 @@ func info() {
 func serverInfo() {
 	s := getServer()
 	out := os.Stdout
-	if !*printFlag {
+	if len(*oFlag) > 0 {
 		out, _ = os.Create(*oFlag)
 		defer out.Close()
 	}
@@ -288,15 +286,14 @@ func vsdbg() {
 	fmt.Println("SSH to", s.Address, *vsdbgPortFlag)
 }
 
-var updateFlag = flag.Bool("update", false, "update ssh config file (path in config or specified by -o)")
-var oFlag = flag.String("o", "out", "output file to use when -print is not set")
-var printFlag = flag.Bool("print", false, "print to stdout")
+var updateFlag = flag.Bool("u", false, "update ssh config file (path in config or specified by -o)")
+var oFlag = flag.String("o", "", "output file")
 var cfgFlag = flag.String("config-file ", "ash.config.json", "ash config file")
 var putFlag = flag.String("put", "", "put file or directory")
 var getFlag = flag.String("get", "", "get file or directory")
 var execFlag = flag.String("exec", "", "execute command")
-var versionFlag = flag.Bool("version", false, `print version`)
-var serverFlag = flag.Bool("server", false, `print selected server info to standard output if -print is set, to file otherwise`)
+var versionFlag = flag.Bool("v", false, `print version`)
+var serverFlag = flag.Bool("i", false, `outputs selected server info (use -o to print to file)`)
 var vsdbgFlag = flag.Bool("vsdbg", false, `setup .net remote container debug`)
 var vsdbgPortFlag = flag.String("vsdbgport", "4444", `.net remote container port`)
 var historyPath = `history`
