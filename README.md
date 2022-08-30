@@ -20,6 +20,7 @@ go get -u golang.org/x/sys
 ## Release
 
 ```
+git push -m "[skip ci] ..."
 git tag 0.0.x
 git push --tags
 ```
