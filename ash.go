@@ -310,11 +310,12 @@ func main() {
 	cfg.KeysPath = strings.ReplaceAll(cfg.KeysPath, "%userprofile%", os.Getenv("userprofile"))
 	cfg.SSHConfig = strings.ReplaceAll(cfg.SSHConfig, "%userprofile%", os.Getenv("userprofile"))
 	historyPath = lookForPath(historyPath, "")
+	if *updateFlag || !fileExists(cfg.SSHConfig) {
+		update()
+	}
 	switch {
 	case *versionFlag:
 		info()
-	case *updateFlag, !fileExists(cfg.SSHConfig):
-		update()
 	case *vsdbgFlag:
 		vsdbg()
 	case *serverFlag:
