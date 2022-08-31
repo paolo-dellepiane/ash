@@ -1,8 +1,8 @@
 {
-    "version": "0.0.27",
-    "url": "https://github.com/paolo-dellepiane/ash/releases/download/0.0.27/ash-0.0.27-win-x64.zip",
+    "version": "0.0.33",
+    "url": "https://github.com/paolo-dellepiane/ash/releases/download/0.0.33/ash-0.0.33-win-x64.zip",
     "bin": "ash.exe",
-    "hash": "8ffa351af70ccfa7147d6843e6cdc59ccd469f210565288218fe292bf9794a64",
+    "hash": "a6c6a12ce5fdf05420d6726928006d8ad7744773f46b736b6c2690d93766dd0e",
     "checkver": "github",
     "homepage": "https://github.com/paolo-dellepiane/ash",
     "autoupdate": {
