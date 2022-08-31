@@ -1,6 +1,6 @@
 module ash
 
-go 1.18
+go 1.19
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.13.1
