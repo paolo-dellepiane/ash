@@ -28,7 +28,7 @@ scoop update -k ash
 ## Release
 
 ```
-git tag 0.0.x
+git tag x.x.x
 git push --tags
 ```
 
