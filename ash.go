@@ -348,6 +348,9 @@ func main() {
 	historyPath = lookForPath(historyPath, "")
 	if *updateFlag || !fileExists(cfg.SSHConfig) {
 		update()
+		if len(flag.Args()) == 0 {
+			return
+		}
 	}
 	switch {
 	case *versionFlag:
@@ -357,9 +360,6 @@ func main() {
 	case *serverFlag, *iaddressFlag:
 		serverInfo()
 	default:
-		if *updateFlag {
-			return
-		}
 		ssh()
 	}
 }
