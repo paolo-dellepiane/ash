@@ -357,6 +357,9 @@ func main() {
 	case *serverFlag, *iaddressFlag:
 		serverInfo()
 	default:
+		if *updateFlag {
+			return
+		}
 		ssh()
 	}
 }
