@@ -17,6 +17,14 @@ scoop install https://gist.githubusercontent.com/paolo-dellepiane/d299721ffd4077
 go get -u golang.org/x/sys
 ```
 
+## Update
+
+- Scoop Update
+
+```
+scoop update -k ash
+```
+
 ## Release
 
 ```
